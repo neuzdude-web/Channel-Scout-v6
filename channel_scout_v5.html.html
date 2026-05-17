@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Channel Scout v5</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0a;--bg2:#111;--bg3:#1a1a1a;--bg4:#222;--bg5:#2a2a2a;
+  --border:#222;--border2:#333;--border3:#444;
+  --text:#e8e8e8;--text2:#aaa;--text3:#666;
+  --red:#ff3b3b;--red2:#e02020;--red-bg:#1a0606;--red-border:#3a0f0f;
+  --green:#22c55e;--green2:#16a34a;--green-bg:#061208;--green-border:#0a2e14;
+  --blue:#3b9eff;--blue-bg:#06101a;--blue-border:#0d2a44;
+  --amber:#f59e0b;--amber-bg:#160d00;--amber-border:#3a2800;
+  --purple:#a855f7;--purple-bg:#100818;--purple-border:#2a0f44;
+  --cyan:#06b6d4;--cyan-bg:#040e12;
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;line-height:1.4}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border3);border-radius:3px}
+
+/* LAYOUT */
+.wrap{display:grid;grid-template-columns:290px 1fr;min-height:100vh}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:12px;overflow-y:auto;height:100vh;position:sticky;top:0;display:flex;flex-direction:column;gap:10px}
+.main{display:flex;flex-direction:column;overflow:hidden}
+
+/* TOP BAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;flex-shrink:0}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.logo{width:30px;height:30px;background:var(--red);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.logo-txt h1{font-size:14px;font-weight:700;color:#fff}
+.logo-txt p{font-size:10px;color:var(--text2)}
+.vbadge{background:var(--purple-bg);border:1px solid var(--purple-border);color:var(--purple);font-size:9px;padding:1px 5px;border-radius:6px;margin-left:3px}
+.topbar-right{display:flex;gap:6px;align-items:center}
+
+/* TOOLBAR BUTTONS */
+.tbtn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;display:flex;align-items:center;gap:4px;transition:all 0.15s}
+.tbtn:hover{background:var(--bg4);color:var(--text);border-color:var(--border3)}
+.tbtn.active{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+.tbtn-red{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+.tbtn-red:hover{opacity:0.85}
+.tbtn-green{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.tbtn-green:hover{opacity:0.85}
+
+/* CREDIT METER */
+.credit-box{background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:9px}
+.c-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.c-lbl{font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+.c-val{font-size:13px;font-weight:700}
+.c-bar-w{height:3px;background:var(--bg5);border-radius:10px;overflow:hidden;margin-bottom:4px}
+.c-bar{height:100%;border-radius:10px;transition:width 0.4s}
+.c-note{font-size:10px;color:var(--text3);line-height:1.5}
+
+/* FORM */
+.lbl{font-size:10px;color:var(--text2);display:block;margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px}
+.fld{display:flex;flex-direction:column}
+input,select{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 9px;border-radius:6px;font-size:12px;outline:none;transition:border-color 0.15s;width:100%}
+input:focus,select:focus{border-color:var(--blue)}
+input[type=password]{font-family:monospace;letter-spacing:2px}
+input::placeholder{color:var(--text3)}
+select option{background:var(--bg3)}
+.kw{position:relative}
+.kw input{padding-right:48px}
+.kshow{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--blue);cursor:pointer;background:var(--bg4);border:1px solid var(--border2);padding:2px 5px;border-radius:3px}
+.sep{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;padding-top:6px;border-top:1px solid var(--border);margin-top:2px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+
+/* CUSTOM RESULTS INPUT */
+.custom-res-row{display:flex;gap:5px;align-items:flex-end}
+.custom-res-row input[type=number]{flex:1;-moz-appearance:textfield}
+.custom-res-row input[type=number]::-webkit-outer-spin-button,
+.custom-res-row input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+.cost-est{background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:5px;padding:5px 8px;font-size:10px;color:#f0bf60;line-height:1.6;margin-top:4px}
+
+/* FILTER CHANGED / CACHE */
+.notice{border-radius:5px;padding:6px 9px;font-size:11px;line-height:1.6;display:none}
+.notice.show{display:block}
+.notice-amber{background:var(--amber-bg);border:1px solid var(--amber-border);color:#f0bf60}
+.notice-green{background:var(--green-bg);border:1px solid var(--green-border);color:#5fe080}
+.notice-blue{background:var(--blue-bg);border:1px solid var(--blue-border);color:#7ab8f0}
+
+/* SEARCH BUTTONS */
+.btn-row{display:flex;gap:5px}
+.btn{flex:1;padding:9px 4px;font-size:11px;font-weight:700;border:none;border-radius:6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.3;transition:opacity 0.15s}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
+.bp{background:var(--bg4);color:var(--text);border:1px solid var(--border2)}
+.bp:not(:disabled):hover{background:var(--bg5)}
+.bs{background:var(--red);color:#fff}
+.bs:not(:disabled):hover{opacity:0.85}
+.bsm{font-size:9px;font-weight:400;opacity:0.75;margin-top:1px}
+.bclear{width:100%;padding:5px;font-size:11px;background:transparent;color:var(--text3);border:1px solid var(--border);border-radius:5px;cursor:pointer}
+.bclear:hover{background:var(--bg3);color:var(--text2)}
+
+/* SEARCH HISTORY */
+.hist-list{display:flex;flex-direction:column;gap:3px}
+.hist-item{background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:5px 8px;font-size:11px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;color:var(--text2)}
+.hist-item:hover{border-color:var(--blue);color:var(--text)}
+.hist-del{color:var(--text3);font-size:13px;line-height:1;padding:0 2px;cursor:pointer}
+.hist-del:hover{color:var(--red)}
+
+/* PROGRESS BAR */
+.progress-wrap{padding:16px;text-align:center;color:var(--text2)}
+.prog-bar-w{height:6px;background:var(--bg4);border-radius:10px;overflow:hidden;margin:10px 0}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--red),var(--purple));border-radius:10px;transition:width 0.3s}
+.prog-text{font-size:12px;color:var(--text2)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--red);border-radius:50%;animation:spin 0.6s linear infinite;vertical-align:middle;margin-right:5px}
+
+/* RESULTS AREA */
+.results-area{flex:1;overflow-y:auto;padding:14px}
+
+/* TOP TOOLBAR ROW */
+.res-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px}
+.res-info{font-size:13px;font-weight:600;color:#fff}
+.res-info span{font-size:11px;color:var(--text2);font-weight:400;margin-left:4px}
+.view-btns{display:flex;gap:4px}
+.vbtn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:4px 9px;border-radius:5px;cursor:pointer;font-size:11px;transition:all 0.15s}
+.vbtn.on{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+
+/* LANG BANNER */
+.lang-banner{border-radius:6px;padding:7px 11px;font-size:11px;margin-bottom:10px;line-height:1.7}
+.lb-ok{background:var(--green-bg);border:1px solid var(--green-border);color:#5fe080}
+.lb-warn{background:var(--amber-bg);border:1px solid var(--amber-border);color:#f0bf60}
+.lb-info{background:var(--blue-bg);border:1px solid var(--blue-border);color:#7ab8f0}
+
+/* CARD VIEW */
+.ch-grid{display:flex;flex-direction:column;gap:8px}
+.ch-card{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:12px;display:flex;gap:11px;cursor:pointer;transition:border-color 0.15s;position:relative}
+.ch-card:hover{border-color:var(--red)}
+.rnum{position:absolute;top:9px;left:9px;width:19px;height:19px;background:var(--bg4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--text2)}
+.r1{background:var(--amber);color:#000}
+.r2{background:#777;color:#000}
+.r3{background:#6a3a10;color:#ffa050}
+.av{width:46px;height:46px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--bg3);margin-left:14px}
+.av-i{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:#fff;flex-shrink:0;margin-left:14px}
+.ch-body{flex:1;min-width:0}
+.ch-top{display:flex;align-items:flex-start;justify-content:space-between;gap:5px;margin-bottom:1px}
+.ch-name{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tags{display:flex;gap:3px;flex-wrap:wrap;flex-shrink:0}
+.tg{font-size:9px;padding:2px 5px;border-radius:3px;font-weight:700;white-space:nowrap}
+.tc{background:var(--bg4);border:1px solid var(--border2);color:var(--text2)}
+.tr{background:var(--blue-bg);border:1px solid var(--blue-border);color:var(--blue)}
+.tg-act{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green)}
+.tg-dorm{background:var(--red-bg);border:1px solid var(--red-border);color:#ff8080}
+.ch-hdl{font-size:10px;color:var(--text2);margin-bottom:5px}
+.rl-row{display:flex;align-items:center;gap:5px;margin-bottom:5px}
+.rl-lbl{font-size:9px;color:var(--text3);width:52px;flex-shrink:0}
+.rl-bw{flex:1;height:3px;background:var(--bg4);border-radius:10px;overflow:hidden}
+.rl-b{height:100%;border-radius:10px}
+.rl-pct{font-size:9px;color:var(--text2);width:26px;text-align:right;flex-shrink:0}
+.stats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:5px}
+.st{font-size:11px;color:var(--text2)}
+.st b{color:#fff;font-weight:600}
+.st-hi{color:var(--green)}
+.st-lo{color:var(--red)}
+.ch-desc{font-size:10px;color:var(--text3);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:4px}
+.ch-actions{display:flex;gap:8px;align-items:center}
+.ch-link{font-size:10px;color:var(--blue);text-decoration:none}
+.ch-link:hover{text-decoration:underline}
+.copy-btn{font-size:9px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:2px 6px;cursor:pointer}
+.copy-btn:hover{color:var(--text);border-color:var(--border2)}
+
+/* COMPACT VIEW */
+.compact-grid{display:flex;flex-direction:column;gap:4px}
+.cc-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color 0.15s}
+.cc-card:hover{border-color:var(--red)}
+.cc-rank{width:22px;text-align:center;font-size:10px;font-weight:700;color:var(--text2);flex-shrink:0}
+.cc-av{width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--bg3)}
+.cc-av-i{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.cc-name{font-size:12px;font-weight:600;color:#fff;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-handle{font-size:10px;color:var(--text2);width:100px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-stat{font-size:11px;color:var(--text2);width:65px;text-align:right;flex-shrink:0}
+.cc-stat b{color:#fff;font-weight:600}
+.cc-rel{font-size:9px;width:32px;text-align:right;flex-shrink:0}
+
+/* TABLE VIEW */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead{position:sticky;top:0;z-index:10}
+th{background:var(--bg3);border-bottom:1px solid var(--border2);padding:8px 10px;text-align:left;color:var(--text2);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{color:var(--text);background:var(--bg4)}
+th.sort-asc::after{content:' ↑'}
+th.sort-desc::after{content:' ↓'}
+td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+tr:hover td{background:var(--bg3);cursor:pointer}
+td.td-name{color:#fff;font-weight:600;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+td.td-num{text-align:right;color:#fff;font-weight:600}
+td.td-rel{text-align:right}
+.rel-pill{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700}
+.rel-hi{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green)}
+.rel-mid{background:var(--amber-bg);border:1px solid var(--amber-border);color:var(--amber)}
+.rel-lo{background:var(--red-bg);border:1px solid var(--red-border);color:#ff8080}
+
+/* PAGER */
+.pager{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;padding-bottom:8px}
+.pg{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:11px;padding:5px 12px;border-radius:5px;cursor:pointer}
+.pg:disabled{opacity:0.3;cursor:not-allowed}
+.pg-i{font-size:11px;color:var(--text2);min-width:70px;text-align:center}
+.pg-jump{width:50px;text-align:center}
+
+/* EMPTY / ERROR */
+.empty{text-align:center;padding:60px 20px;color:var(--text2)}
+.empty .ico{font-size:44px;margin-bottom:12px}
+.empty p{font-size:13px;line-height:1.8}
+.hint{margin-top:14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;text-align:left;line-height:1.8;color:var(--text2)}
+.hint b{color:var(--text)}
+.err-box{background:var(--red-bg);border:1px solid var(--red-border);border-radius:7px;padding:12px;font-size:12px;color:#ff8080;line-height:1.8;margin:14px}
+
+@media(max-width:700px){.wrap{grid-template-columns:1fr}.sidebar{height:auto;position:static}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside class="sidebar">
+
+  <!-- CREDIT METER -->
+  <div class="credit-box">
+    <div class="c-row">
+      <span class="c-lbl">⚡ Credits Left</span>
+      <span class="c-val" id="cVal">–</span>
+    </div>
+    <div class="c-bar-w"><div class="c-bar" id="cBar" style="width:100%"></div></div>
+    <div class="c-note">Used: <span id="cUsed" style="color:var(--amber)">0</span> · Resets in <span id="cReset">–</span> · Cache=0u</div>
+  </div>
+
+  <!-- API KEY -->
+  <div class="fld">
+    <label class="lbl">🔑 YouTube API v3 Key</label>
+    <div class="kw">
+      <input type="password" id="apiKey" placeholder="AIza..." oninput="refreshUI()">
+      <span class="kshow" onclick="toggleKey()">Show</span>
+    </div>
+  </div>
+
+  <!-- QUERY -->
+  <div class="fld">
+    <label class="lbl">Niche / Topic / Channel Name</label>
+    <input type="text" id="query"
+      placeholder="science experiments, hair trimmer..."
+      oninput="refreshUI()"
+      onkeydown="if(event.key==='Enter')go(false)">
+  </div>
+
+  <div class="sep">🌍 Location & Language</div>
+
+  <div class="row2">
+    <div class="fld">
+      <label class="lbl">Country</label>
+      <select id="country" onchange="onFilterChange()"></select>
+    </div>
+    <div class="fld">
+      <label class="lbl">Language <span style="color:var(--green);font-size:8px">STRICT</span></label>
+      <select id="lang" onchange="onFilterChange()"></select>
+    </div>
+  </div>
+  <div class="notice notice-blue" id="langNote" style="display:none"></div>
+
+  <div class="sep">📊 Results & Sorting</div>
+
+  <div class="row2">
+    <div class="fld">
+      <label class="lbl">Sort By</label>
+      <select id="sortBy" onchange="onFilterChange()">
+        <option value="relevance">Relevance</option>
+        <option value="subs">Subscribers</option>
+        <option value="views">Total Views</option>
+        <option value="avgViews">Avg Views/Video</option>
+        <option value="videos">Video Count</option>
+        <option value="engagement">Engagement</option>
+      </select>
+    </div>
+    <div class="fld">
+      <label class="lbl">Min Subs</label>
+      <select id="minSubs" onchange="onFilterChange()">
+        <option value="0">Any</option>
+        <option value="1000">1K+</option>
+        <option value="10000">10K+</option>
+        <option value="100000">100K+</option>
+        <option value="1000000">1M+</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- CUSTOM RESULT COUNT -->
+  <div class="fld">
+    <label class="lbl">How Many Channels to Find</label>
+    <div class="custom-res-row">
+      <input type="number" id="customCount" value="50" min="5" max="500" step="5"
+        oninput="updateCostEst()" onchange="onFilterChange()">
+      <button class="tbtn" onclick="document.getElementById('customCount').value=200;updateCostEst();onFilterChange()" style="white-space:nowrap;padding:6px 8px">200</button>
+      <button class="tbtn" onclick="document.getElementById('customCount').value=500;updateCostEst();onFilterChange()" style="white-space:nowrap;padding:6px 8px">500</button>
+    </div>
+    <div class="cost-est" id="costEst">Enter a number · Max 500</div>
+  </div>
+
+  <!-- NOTICES -->
+  <div class="notice notice-amber" id="filterAlert">⚠️ Filter changed — previous cache cleared. Click Search for fresh results.</div>
+  <div class="notice notice-green" id="cacheBox">✅ Cached result (0 credits). <a href="#" onclick="bustCache();return false" style="color:var(--blue)">Force refresh</a></div>
+
+  <!-- SEARCH BUTTONS -->
+  <div class="btn-row">
+    <button class="btn bp" id="prevBtn" onclick="go(true)" disabled>
+      🔎 Preview
+      <div class="bsm">~101u · 5 results</div>
+    </button>
+    <button class="btn bs" id="srchBtn" onclick="go(false)" disabled>
+      🚀 Search
+      <div class="bsm" id="fcost">...</div>
+    </button>
+  </div>
+  <button class="bclear" onclick="bustCache()">✕ Clear Cache &amp; Results</button>
+
+  <!-- SEARCH HISTORY -->
+  <div class="sep">🕒 Recent Searches</div>
+  <div class="hist-list" id="histList"></div>
+</aside>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main class="main">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo">📡</div>
+      <div class="logo-txt">
+        <h1>Channel Scout<span class="vbadge">v5</span></h1>
+        <p>Find every creator in any niche · strict language filter</p>
+      </div>
+    </div>
+    <div class="topbar-right" id="topbarRight">
+      <!-- populated after search -->
+    </div>
+  </div>
+
+  <!-- RESULTS AREA -->
+  <div class="results-area" id="resultsArea">
+    <div class="empty">
+      <div class="ico">📡</div>
+      <p>Find every creator in any niche worldwide.</p>
+      <div class="hint">
+        <b>🚀 v5 — What's new:</b><br>
+        • <b>Custom result count</b> — find 5 to 500 channels in one search<br>
+        • <b>Multi-page API fetch</b> — chains multiple calls with pageToken to get more results<br>
+        • <b>3 view modes</b> — Card, Compact, Table (sortable columns)<br>
+        • <b>CSV Export</b> — download all results as a spreadsheet<br>
+        • <b>Avg views/video</b> — see which channels get the most views per upload<br>
+        • <b>Engagement score</b> — views ÷ subscribers (higher = more active audience)<br>
+        • <b>Active/Dormant badge</b> — detect channels still uploading<br>
+        • <b>Search history</b> — one-click re-run past searches<br>
+        • <b>Strict language filter</b> — Unicode script detection for 35+ languages<br><br>
+        <b>⚠️ Open as local file:</b> Double-click → Chrome shows <code>file:///C:/Users/...</code>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════════════════
+const COUNTRIES=[['','All Countries'],['US','United States'],['IN','India'],['GB','United Kingdom'],['CA','Canada'],['AU','Australia'],['DE','Germany'],['FR','France'],['JP','Japan'],['KR','South Korea'],['BR','Brazil'],['MX','Mexico'],['NG','Nigeria'],['ZA','South Africa'],['EG','Egypt'],['AR','Argentina'],['CO','Colombia'],['CL','Chile'],['PE','Peru'],['ES','Spain'],['IT','Italy'],['PL','Poland'],['NL','Netherlands'],['SE','Sweden'],['NO','Norway'],['DK','Denmark'],['FI','Finland'],['RU','Russia'],['UA','Ukraine'],['TR','Turkey'],['SA','Saudi Arabia'],['AE','UAE'],['IL','Israel'],['PK','Pakistan'],['BD','Bangladesh'],['ID','Indonesia'],['MY','Malaysia'],['TH','Thailand'],['VN','Vietnam'],['PH','Philippines'],['SG','Singapore'],['HK','Hong Kong'],['TW','Taiwan'],['CN','China'],['NZ','New Zealand'],['GH','Ghana'],['KE','Kenya'],['MA','Morocco'],['DZ','Algeria'],['IQ','Iraq'],['CZ','Czech Republic'],['HU','Hungary'],['RO','Romania'],['GR','Greece'],['PT','Portugal'],['BE','Belgium'],['AT','Austria'],['CH','Switzerland'],['IE','Ireland'],['LK','Sri Lanka'],['NP','Nepal'],['SK','Slovakia'],['BG','Bulgaria'],['HR','Croatia'],['RS','Serbia'],['LT','Lithuania'],['LV','Latvia'],['EE','Estonia'],['QA','Qatar'],['KW','Kuwait'],['JO','Jordan'],['EC','Ecuador'],['BO','Bolivia'],['GT','Guatemala'],['CR','Costa Rica'],['UZ','Uzbekistan'],['KZ','Kazakhstan'],['GE','Georgia'],['AM','Armenia'],['UG','Uganda'],['TZ','Tanzania'],['CM','Cameroon'],['SN','Senegal'],['ZM','Zambia'],['ZW','Zimbabwe'],['AO','Angola'],['DO','Dominican Republic'],['TT','Trinidad & Tobago'],['JM','Jamaica']];
+
+const LANGUAGES=[['','All Languages'],['en','English'],['hi','Hindi'],['kn','Kannada'],['ta','Tamil'],['te','Telugu'],['ml','Malayalam'],['mr','Marathi'],['bn','Bengali'],['gu','Gujarati'],['pa','Punjabi'],['ur','Urdu'],['zh-Hans','Chinese Simplified'],['zh-Hant','Chinese Traditional'],['ja','Japanese'],['ko','Korean'],['ar','Arabic'],['fr','French'],['de','German'],['es','Spanish'],['pt','Portuguese'],['ru','Russian'],['it','Italian'],['pl','Polish'],['nl','Dutch'],['sv','Swedish'],['no','Norwegian'],['da','Danish'],['fi','Finnish'],['tr','Turkish'],['id','Indonesian'],['ms','Malay'],['th','Thai'],['vi','Vietnamese'],['tl','Filipino'],['uk','Ukrainian'],['cs','Czech'],['ro','Romanian'],['hu','Hungarian'],['el','Greek'],['he','Hebrew'],['fa','Persian'],['sw','Swahili'],['yo','Yoruba'],['am','Amharic'],['zu','Zulu'],['af','Afrikaans'],['bg','Bulgarian'],['sk','Slovak'],['sr','Serbian'],['lt','Lithuanian'],['lv','Latvian'],['ka','Georgian'],['kk','Kazakh'],['hy','Armenian'],['si','Sinhala'],['ne','Nepali'],['my','Burmese'],['km','Khmer'],['mn','Mongolian']];
+
+// ════════════════════════════════════════════════════════════
+// LANGUAGE SCRIPT DETECTION
+// ════════════════════════════════════════════════════════════
+const SCRIPT_MAP={
+  hi:[/[\u0900-\u097F]/,true],mr:[/[\u0900-\u097F]/,true],ne:[/[\u0900-\u097F]/,true],
+  bn:[/[\u0980-\u09FF]/,true],pa:[/[\u0A00-\u0A7F]/,true],gu:[/[\u0A80-\u0AFF]/,true],
+  ta:[/[\u0B80-\u0BFF]/,true],te:[/[\u0C00-\u0C7F]/,true],kn:[/[\u0C80-\u0CFF]/,true],
+  ml:[/[\u0D00-\u0D7F]/,true],si:[/[\u0D80-\u0DFF]/,true],
+  ar:[/[\u0600-\u06FF]/,true],fa:[/[\u0600-\u06FF]/,true],ur:[/[\u0600-\u06FF]/,true],
+  he:[/[\u05D0-\u05EA]/,true],el:[/[\u0370-\u03FF]/,true],
+  th:[/[\u0E00-\u0E7F]/,true],my:[/[\u1000-\u109F]/,true],km:[/[\u1780-\u17FF]/,true],
+  ka:[/[\u10A0-\u10FF]/,true],hy:[/[\u0530-\u058F]/,true],am:[/[\u1200-\u137F]/,true],
+  ko:[/[\uAC00-\uD7AF]/,true],ja:[/[\u3040-\u30FF]/,true],
+  'zh-Hans':[/[\u4E00-\u9FFF]/,true],'zh-Hant':[/[\u4E00-\u9FFF]/,true],
+  ru:[/[\u0400-\u04FF]/,true],uk:[/[\u0400-\u04FF]/,true],bg:[/[\u0400-\u04FF]/,true],
+  sr:[/[\u0400-\u04FF]/,true],kk:[/[\u0400-\u04FF]/,true],mn:[/[\u1800-\u18AF]/,true],
+};
+function passesLang(ch,lang){
+  if(!lang)return true;
+  const txt=((ch.title||'')+' '+(ch.description||'')).toLowerCase();
+  const e=SCRIPT_MAP[lang];
+  if(e&&e[1])return e[0].test(txt);
+  if(lang==='en'){const nl=(txt.match(/[\u0080-\uFFFF]/g)||[]).length;return nl/Math.max(txt.replace(/\s/g,'').length,1)<0.15;}
+  return true;
+}
+function langIsStrict(lang){return lang&&(!!SCRIPT_MAP[lang]||lang==='en');}
+function langName(lang){return LANGUAGES.find(l=>l[0]===lang)?.[1]||lang;}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+function mkSel(id,data){const s=document.getElementById(id);data.forEach(([v,n])=>{const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o);});}
+mkSel('country',COUNTRIES);mkSel('lang',LANGUAGES);
+const savedKey=localStorage.getItem('cs5_key');
+if(savedKey)document.getElementById('apiKey').value=savedKey;
+updateCostEst();
+renderHistory();
+refreshUI();
+
+// ════════════════════════════════════════════════════════════
+// CREDITS
+// ════════════════════════════════════════════════════════════
+function getCredits(){const s=JSON.parse(localStorage.getItem('cs5_credits')||'{}');const t=new Date().toDateString();if(s.date!==t)return{date:t,used:0};return s;}
+function addCredits(n){const c=getCredits();c.used+=n;localStorage.setItem('cs5_credits',JSON.stringify(c));refreshMeter();}
+function refreshMeter(){
+  const c=getCredits();const used=c.used,left=Math.max(0,10000-used),pct=(left/10000)*100;
+  const col=pct>50?'var(--green)':pct>20?'var(--amber)':'var(--red)';
+  document.getElementById('cVal').textContent=left.toLocaleString();document.getElementById('cVal').style.color=col;
+  document.getElementById('cUsed').textContent=used.toLocaleString();
+  document.getElementById('cBar').style.width=pct+'%';document.getElementById('cBar').style.background=col;
+  const now=new Date(),mid=new Date(now);mid.setHours(24,0,0,0);
+  document.getElementById('cReset').textContent=Math.ceil((mid-now)/3600000)+'h';
+}
+refreshMeter();
+
+// ════════════════════════════════════════════════════════════
+// COST ESTIMATOR
+// ════════════════════════════════════════════════════════════
+function updateCostEst(){
+  const n=parseInt(document.getElementById('customCount').value)||50;
+  const pages=Math.ceil(n/50);
+  const units=pages*100+Math.ceil(n/50);
+  const left=10000-getCredits().used;
+  const ok=units<=left;
+  document.getElementById('costEst').innerHTML=
+    `${n} channels → ${pages} API page${pages>1?'s':''} → <b style="color:${ok?'var(--amber)':'var(--red)'}">${units} units</b> · Left: ${left.toLocaleString()} · ~${Math.floor(left/units)} searches remaining`;
+  document.getElementById('fcost').textContent=`~${units}u`;
+}
+
+// ════════════════════════════════════════════════════════════
+// CACHE  — key = all params, value = plain channel array
+// ════════════════════════════════════════════════════════════
+const CACHE_TTL=2*60*60*1000;
+function ck(prev){return['cs5',prev?'p':'f',gv('query'),gv('country'),gv('lang'),gv('sortBy'),gv('minSubs'),gv('customCount')].join('|');}
+function readCache(prev){
+  try{const r=localStorage.getItem(ck(prev));if(!r)return null;const o=JSON.parse(r);if(Date.now()-o.ts>CACHE_TTL){localStorage.removeItem(ck(prev));return null;}return o.ch;}
+  catch{return null;}
+}
+function writeCache(ch,prev){try{localStorage.setItem(ck(prev),JSON.stringify({ts:Date.now(),ch}));}catch{}}
+function bustCurrentCache(){Object.keys(localStorage).filter(k=>k.startsWith('cs5|')).forEach(k=>localStorage.removeItem(k));}
+function bustCache(){bustCurrentCache();hide('cacheBox');hide('filterAlert');document.getElementById('resultsArea').innerHTML='<div class="empty"><div class="ico">📡</div><p>Cache cleared.</p></div>';document.getElementById('topbarRight').innerHTML='';refreshUI();}
+
+// ════════════════════════════════════════════════════════════
+// UI HELPERS
+// ════════════════════════════════════════════════════════════
+function gv(id){return(document.getElementById(id)||{}).value||'';}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmt(n){if(!n&&n!==0)return'—';n=parseInt(n);if(n>=1e9)return(n/1e9).toFixed(1)+'B';if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return n.toString();}
+function show(id){document.getElementById(id).classList.add('show');}
+function hide(id){document.getElementById(id).classList.remove('show');}
+function toggleKey(){const i=document.getElementById('apiKey');i.type=i.type==='password'?'text':'password';document.querySelector('.kshow').textContent=i.type==='password'?'Show':'Hide';}
+
+function onFilterChange(){
+  bustCurrentCache();
+  show('filterAlert');hide('cacheBox');
+  updateLangNote();updateCostEst();refreshUI();
+}
+function updateLangNote(){
+  const lang=gv('lang'),noteEl=document.getElementById('langNote');
+  if(!lang){noteEl.style.display='none';return;}
+  noteEl.style.display='block';
+  if(langIsStrict(lang)){noteEl.className='notice notice-green show';noteEl.textContent=`✅ STRICT: only ${langName(lang)} script channels will be shown.`;}
+  else{noteEl.className='notice notice-blue show';noteEl.textContent=`ℹ️ ${langName(lang)} is Latin-script — filtered via API hint.`;}
+}
+function refreshUI(){
+  const key=gv('apiKey'),q=gv('query'),ok=key.length>10&&q.length>0;
+  document.getElementById('prevBtn').disabled=!ok;
+  document.getElementById('srchBtn').disabled=!ok;
+  if(!ok)return;
+  updateCostEst();
+  if(readCache(false)||readCache(true)){show('cacheBox');hide('filterAlert');}
+}
+
+// ════════════════════════════════════════════════════════════
+// SEARCH HISTORY
+// ════════════════════════════════════════════════════════════
+function getHistory(){return JSON.parse(localStorage.getItem('cs5_hist')||'[]');}
+function pushHistory(q,lang,country){
+  let h=getHistory();
+  h=h.filter(x=>x.q!==q||x.lang!==lang||x.country!==country);
+  h.unshift({q,lang,country,ts:Date.now()});
+  h=h.slice(0,10);
+  localStorage.setItem('cs5_hist',JSON.stringify(h));
+  renderHistory();
+}
+function renderHistory(){
+  const h=getHistory();
+  const el=document.getElementById('histList');
+  if(!h.length){el.innerHTML='<div style="font-size:10px;color:var(--text3)">No searches yet</div>';return;}
+  el.innerHTML=h.map((x,i)=>`
+    <div class="hist-item" onclick="loadHistory(${i})">
+      <span>🔍 ${esc(x.q)}${x.lang?' · '+langName(x.lang):''}${x.country?' · '+x.country:''}</span>
+      <span class="hist-del" onclick="delHistory(event,${i})">×</span>
+    </div>`).join('');
+}
+function loadHistory(i){
+  const h=getHistory()[i];
+  if(!h)return;
+  document.getElementById('query').value=h.q;
+  if(h.lang)document.getElementById('lang').value=h.lang;
+  if(h.country)document.getElementById('country').value=h.country;
+  bustCurrentCache();refreshUI();updateLangNote();
+}
+function delHistory(e,i){
+  e.stopPropagation();
+  let h=getHistory();h.splice(i,1);
+  localStorage.setItem('cs5_hist',JSON.stringify(h));renderHistory();
+}
+
+// ════════════════════════════════════════════════════════════
+// SCORING
+// ════════════════════════════════════════════════════════════
+function scoreChannel(ch,kws){
+  let s=0;
+  const t=(ch.title||'').toLowerCase(),d=(ch.description||'').toLowerCase(),h=(ch.handle||'').toLowerCase().replace('@','');
+  for(const kw of kws){
+    const w=kw.toLowerCase();
+    if(t===w)s+=150;else if(t.startsWith(w+' ')||t.endsWith(' '+w))s+=100;else if(t.includes(w))s+=70;
+    if(h.includes(w))s+=40;
+    if(d.includes(w))s+=15;
+  }
+  if(kws.length>1&&kws.every(kw=>t.includes(kw.toLowerCase())))s+=70;
+  const subs=parseInt(ch.subscribers)||0;
+  if(subs>0)s+=Math.min(40,Math.log10(subs)*5);
+  if(!kws.some(kw=>t.includes(kw.toLowerCase())||d.includes(kw.toLowerCase())||h.includes(kw.toLowerCase())))s=0;
+  return Math.round(s);
+}
+
+// ════════════════════════════════════════════════════════════
+// COMPUTED METRICS
+// ════════════════════════════════════════════════════════════
+function computeMetrics(ch){
+  const subs=parseInt(ch.subscribers)||0;
+  const views=parseInt(ch.totalViews)||0;
+  const vids=parseInt(ch.videoCount)||1;
+  ch.avgViews=Math.round(views/vids);
+  ch.engagement=subs>0?Math.round((views/subs)*10)/10:0; // views per subscriber
+  ch.active=vids>10&&views>0; // basic heuristic
+  return ch;
+}
+
+// ════════════════════════════════════════════════════════════
+// MAIN SEARCH
+// ════════════════════════════════════════════════════════════
+const YT='https://www.googleapis.com/youtube/v3';
+let allChannels=[],currentPage=0,currentView='card',currentSort='relevance',currentSortDir=1;
+const PER_PAGE=20;
+
+async function go(isPreview){
+  const apiKey=gv('apiKey'),query=gv('query');
+  if(!apiKey||!query)return;
+  localStorage.setItem('cs5_key',apiKey);
+
+  // Cache hit
+  const cached=readCache(isPreview);
+  if(cached){allChannels=cached;currentPage=0;renderResults(isPreview);return;}
+
+  const lang=gv('lang'),country=gv('country'),minSubs=parseInt(gv('minSubs'))||0;
+  const targetCount=isPreview?5:Math.min(500,parseInt(gv('customCount'))||50);
+  const keywords=query.split(/\s+/).filter(w=>w.length>1);
+  const rP=country?'&regionCode='+country:'';
+  const lP=lang?'&relevanceLanguage='+lang:'';
+
+  document.getElementById('prevBtn').disabled=true;
+  document.getElementById('srchBtn').disabled=true;
+  hide('filterAlert');
+
+  const totalPages=Math.ceil(targetCount/50);
+  let pageToken='',collectedIds=[],pagesDone=0;
+
+  try{
+    // ── MULTI-PAGE CHANNEL SEARCH ────────────────────────────
+    while(collectedIds.length<targetCount){
+      pagesDone++;
+      const tokenParam=pageToken?'&pageToken='+pageToken:'';
+      const take=Math.min(50,targetCount-collectedIds.length);
+
+      showProgress(pagesDone,totalPages,`Fetching page ${pagesDone}/${totalPages} of channels...`);
+
+      const url1=`${YT}/search?part=snippet&type=channel&maxResults=${take}&q=${encodeURIComponent(query)}${rP}${lP}${tokenParam}&key=${apiKey}`;
+      const r1=await fetch(url1);const d1=await r1.json();
+      addCredits(100);
+
+      if(d1.error){
+        const code=d1.error.code,msg=d1.error.message||'API Error';
+        let hint='';
+        if(code===403||msg.includes('quota'))hint='<br>→ Quota exhausted or invalid API key.';
+        if(code===400)hint='<br>→ Bad request — remove country/language filters.';
+        showErr(`Error ${code}: ${msg}${hint}`);return;
+      }
+
+      const items=d1.items||[];
+      items.forEach(it=>{
+        const id=it.snippet?.channelId||it.id?.channelId||it.id;
+        if(id&&!collectedIds.includes(id))collectedIds.push(id);
+      });
+
+      pageToken=d1.nextPageToken||'';
+      if(!pageToken||!items.length)break; // no more pages
+    }
+
+    collectedIds=[...new Set(collectedIds)];
+
+    // ── FETCH CHANNEL STATS (1u per 50) ─────────────────────
+    showProgress(totalPages,totalPages,`Loading stats for ${collectedIds.length} channels...`);
+    const rawChannels=[];
+
+    for(let i=0;i<collectedIds.length;i+=50){
+      const chunk=collectedIds.slice(i,i+50);
+      const url2=`${YT}/channels?part=snippet,statistics&id=${chunk.join(',')}&key=${apiKey}`;
+      const r2=await fetch(url2);const d2=await r2.json();
+      addCredits(1);
+      if(d2.error){showErr('Channel fetch error: '+d2.error.message);return;}
+      (d2.items||[]).forEach(ch=>{
+        const subs=parseInt(ch.statistics?.subscriberCount||0);
+        if(subs<minSubs)return;
+        rawChannels.push(computeMetrics({
+          id:ch.id,
+          title:ch.snippet.title||'',
+          handle:ch.snippet.customUrl||'',
+          description:ch.snippet.description||'',
+          country:ch.snippet.country||'',
+          avatar:ch.snippet.thumbnails?.medium?.url||ch.snippet.thumbnails?.default?.url||'',
+          subscribers:subs,
+          totalViews:ch.statistics?.viewCount||0,
+          videoCount:ch.statistics?.videoCount||0,
+        }));
+      });
+    }
+
+    // ── STRICT LANGUAGE FILTER ───────────────────────────────
+    const beforeLang=rawChannels.length;
+    const langFiltered=lang?rawChannels.filter(ch=>passesLang(ch,lang)):rawChannels;
+    const final=langFiltered.length>0?langFiltered:rawChannels;
+    const langFallback=langFiltered.length===0&&lang;
+    const removedByLang=beforeLang-langFiltered.length;
+
+    // ── SCORE & SORT ─────────────────────────────────────────
+    final.forEach(ch=>{ch.relScore=scoreChannel(ch,keywords);});
+    const maxS=Math.max(...final.map(c=>c.relScore),1);
+    final.forEach(ch=>{ch.relPct=Math.round((ch.relScore/maxS)*100);});
+
+    sortChannels(final,gv('sortBy'));
+
+    // ── ATTACH META ──────────────────────────────────────────
+    final._meta={lang,langFallback,removedByLang,query,isStrict:langIsStrict(lang)};
+
+    writeCache(final,isPreview);
+    pushHistory(query,lang,country);
+
+    allChannels=final;currentPage=0;
+    renderResults(isPreview);
+
+  }catch(e){
+    showErr(`Network Error: ${e.message}<br>Make sure you opened this .html file directly in Chrome (file:///C:/...) — NOT via Claude's preview button.`);
+  }finally{refreshUI();refreshMeter();}
+}
+
+function sortChannels(arr,by){
+  arr.sort((a,b)=>{
+    switch(by){
+      case'subs':    return parseInt(b.subscribers)-parseInt(a.subscribers);
+      case'views':   return parseInt(b.totalViews)-parseInt(a.totalViews);
+      case'avgViews':return b.avgViews-a.avgViews;
+      case'videos':  return parseInt(b.videoCount)-parseInt(a.videoCount);
+      case'engagement':return b.engagement-a.engagement;
+      default:       return b.relScore-a.relScore;
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// PROGRESS
+// ════════════════════════════════════════════════════════════
+function showProgress(done,total,msg){
+  const pct=Math.round((done/Math.max(total,1))*100);
+  document.getElementById('resultsArea').innerHTML=`
+    <div class="progress-wrap">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px"><span class="spin"></span>${msg}</div>
+      <div class="prog-bar-w"><div class="prog-bar" style="width:${pct}%"></div></div>
+      <div class="prog-text">Step ${done} / ${total} · ${pct}%</div>
+    </div>`;
+}
+function showErr(msg){document.getElementById('resultsArea').innerHTML=`<div class="err-box"><b>❌</b> ${msg}</div>`;}
+
+// ════════════════════════════════════════════════════════════
+// RENDER
+// ════════════════════════════════════════════════════════════
+function renderResults(isPreview){
+  if(!allChannels.length){document.getElementById('resultsArea').innerHTML='<div class="empty"><div class="ico">🔍</div><p>No results. Try different filters.</p></div>';return;}
+
+  const meta=allChannels._meta||{};
+  currentSort=gv('sortBy')||'relevance';
+
+  // TOP BAR ACTIONS
+  document.getElementById('topbarRight').innerHTML=`
+    <div class="view-btns">
+      <button class="vbtn ${currentView==='card'?'on':''}" onclick="setView('card')">🗂 Card</button>
+      <button class="vbtn ${currentView==='compact'?'on':''}" onclick="setView('compact')">📋 Compact</button>
+      <button class="vbtn ${currentView==='table'?'on':''}" onclick="setView('table')">📊 Table</button>
+    </div>
+    <button class="tbtn tbtn-green" onclick="exportCSV()">⬇ CSV</button>
+    ${isPreview?`<button class="tbtn" onclick="go(false)">🚀 Full Search</button>`:''}
+  `;
+
+  // LANG BANNER
+  let langBanner='';
+  if(meta.lang){
+    if(meta.langFallback) langBanner=`<div class="lang-banner lb-warn">⚠️ Strict filter found 0 <b>${langName(meta.lang)}</b> channels — showing all ${allChannels.length} unfiltered results.</div>`;
+    else if(meta.isStrict) langBanner=`<div class="lang-banner lb-ok">🌐 <b>STRICT ${langName(meta.lang)} filter active</b> — ${meta.removedByLang>0?`${meta.removedByLang} off-language channels removed.`:''} Showing ${allChannels.length} verified channels.</div>`;
+    else langBanner=`<div class="lang-banner lb-info">ℹ️ <b>${langName(meta.lang)}</b> is Latin-script — filtered via API hint only.</div>`;
+  }
+
+  // RESULT AREA HTML
+  const start=currentPage*PER_PAGE;
+  const visible=allChannels.slice(start,start+PER_PAGE);
+  const totalPg=Math.ceil(allChannels.length/PER_PAGE);
+  const sortLabel={relevance:'Relevance',subs:'Subscribers',views:'Total Views',avgViews:'Avg Views/Video',videos:'Video Count',engagement:'Engagement'}[currentSort]||'';
+
+  let html=`
+    <div class="res-toolbar">
+      <div class="res-info">
+        📺 ${allChannels.length} Channels <span>· ${sortLabel} · Page ${currentPage+1}/${totalPg}</span>
+        ${isPreview?'<span style="color:var(--green);font-size:10px;margin-left:6px">Preview</span>':''}
+      </div>
+    </div>
+    ${langBanner}`;
+
+  if(currentView==='card')      html+=renderCardView(visible,start);
+  else if(currentView==='compact') html+=renderCompactView(visible,start);
+  else                          html+=renderTableView();
+
+  if(currentView!=='table'&&totalPg>1){
+    html+=`<div class="pager">
+      <button class="pg" onclick="pgGo(0)" ${currentPage===0?'disabled':''}>«</button>
+      <button class="pg" onclick="pgGo(${currentPage-1})" ${currentPage===0?'disabled':''}>‹ Prev</button>
+      <span class="pg-i">Page ${currentPage+1} / ${totalPg}</span>
+      <button class="pg" onclick="pgGo(${currentPage+1})" ${currentPage>=totalPg-1?'disabled':''}>Next ›</button>
+      <button class="pg" onclick="pgGo(${totalPg-1})" ${currentPage>=totalPg-1?'disabled':''}>»</button>
+    </div>`;
+  }
+
+  document.getElementById('resultsArea').innerHTML=html;
+  document.getElementById('resultsArea').scrollTop=0;
+}
+
+// ── CARD VIEW ────────────────────────────────────────────────
+function renderCardView(channels,start){
+  let h='<div class="ch-grid">';
+  channels.forEach((ch,i)=>{
+    const gr=start+i+1,rc=gr===1?'r1':gr===2?'r2':gr===3?'r3':'';
+    const init=ch.title?ch.title[0].toUpperCase():'?';
+    const barCol=ch.relPct>70?'var(--green)':ch.relPct>40?'var(--amber)':'var(--red)';
+    const gradColors=['#1a4a8a,#8a1a1a','#1a3a6a,#6a3a10','#0a3a2a,#2a1a4a','#3a2a0a,#0a2a3a'];
+    const grad=gradColors[gr%gradColors.length];
+    const avHtml=ch.avatar?`<img class="av" src="${esc(ch.avatar)}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`:' ';
+    const meta=allChannels._meta||{};
+    h+=`
+      <div class="ch-card" onclick="openCh('${ch.id}')">
+        <div class="rnum ${rc}">${gr}</div>
+        ${avHtml}
+        <div class="av-i" style="background:linear-gradient(135deg,${grad});${ch.avatar?'display:none':''}">${init}</div>
+        <div class="ch-body">
+          <div class="ch-top">
+            <div class="ch-name">${esc(ch.title)}</div>
+            <div class="tags">
+              ${ch.country?`<span class="tg tc">🌍${ch.country}</span>`:''}
+              ${meta.lang&&meta.isStrict?`<span class="tg tg-act">✓${langName(meta.lang)}</span>`:''}
+              <span class="tg tr">⚡${ch.relPct}%</span>
+              ${ch.active?'<span class="tg tg-act">Active</span>':'<span class="tg tg-dorm">Check</span>'}
+            </div>
+          </div>
+          <div class="ch-hdl">${ch.handle?(ch.handle.startsWith('@')?ch.handle:'@'+ch.handle):''}</div>
+          <div class="rl-row">
+            <span class="rl-lbl">Relevance</span>
+            <div class="rl-bw"><div class="rl-b" style="width:${ch.relPct}%;background:${barCol}"></div></div>
+            <span class="rl-pct">${ch.relPct}%</span>
+          </div>
+          <div class="stats">
+            <div class="st">👥 <b>${fmt(ch.subscribers)}</b> subs</div>
+            <div class="st">👁 <b>${fmt(ch.totalViews)}</b> views</div>
+            <div class="st">🎬 <b>${fmt(ch.videoCount)}</b> videos</div>
+            <div class="st">📈 <b class="${ch.avgViews>100000?'st-hi':''}">${fmt(ch.avgViews)}</b> avg/video</div>
+            <div class="st">🔥 <b>${ch.engagement}</b>x engagement</div>
+          </div>
+          ${ch.description?`<div class="ch-desc">${esc(ch.description)}</div>`:''}
+          <div class="ch-actions">
+            <a class="ch-link" href="https://youtube.com/channel/${ch.id}" target="_blank" onclick="event.stopPropagation()">↗ Open YouTube</a>
+            <button class="copy-btn" onclick="event.stopPropagation();copyLink('${ch.id}')">Copy Link</button>
+          </div>
+        </div>
+      </div>`;
+  });
+  return h+'</div>';
+}
+
+// ── COMPACT VIEW ─────────────────────────────────────────────
+function renderCompactView(channels,start){
+  let h='<div class="compact-grid">';
+  channels.forEach((ch,i)=>{
+    const gr=start+i+1;
+    const init=ch.title?ch.title[0].toUpperCase():'?';
+    const avHtml=ch.avatar?`<img class="cc-av" src="${esc(ch.avatar)}" alt="" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`:' ';
+    const relCls=ch.relPct>70?'rel-hi':ch.relPct>40?'rel-mid':'rel-lo';
+    h+=`
+      <div class="cc-card" onclick="openCh('${ch.id}')">
+        <div class="cc-rank">${gr}</div>
+        ${avHtml}
+        <div class="cc-av-i" style="${ch.avatar?'display:none':''};background:linear-gradient(135deg,#1a4a8a,#8a1a1a)">${init}</div>
+        <div class="cc-name">${esc(ch.title)}</div>
+        <div class="cc-handle">${ch.handle||''}</div>
+        <div class="cc-stat">👥 <b>${fmt(ch.subscribers)}</b></div>
+        <div class="cc-stat">👁 <b>${fmt(ch.totalViews)}</b></div>
+        <div class="cc-stat">📈 <b>${fmt(ch.avgViews)}</b></div>
+        <div class="cc-rel"><span class="rel-pill ${relCls}">${ch.relPct}%</span></div>
+      </div>`;
+  });
+  return h+'</div>';
+}
+
+// ── TABLE VIEW (fully sortable, all channels) ─────────────────
+function renderTableView(){
+  const cols=[
+    {key:'rank',    label:'#',           sortKey:null},
+    {key:'title',   label:'Channel',     sortKey:'relevance'},
+    {key:'country', label:'Country',     sortKey:null},
+    {key:'subs',    label:'Subscribers', sortKey:'subs'},
+    {key:'views',   label:'Total Views', sortKey:'views'},
+    {key:'avgViews',label:'Avg/Video',   sortKey:'avgViews'},
+    {key:'videos',  label:'Videos',      sortKey:'videos'},
+    {key:'engage',  label:'Engagement',  sortKey:'engagement'},
+    {key:'rel',     label:'Relevance',   sortKey:'relevance'},
+  ];
+  let h=`<div class="tbl-wrap"><table><thead><tr>`;
+  cols.forEach(c=>{
+    const sortClass=c.sortKey===currentSort?('sort-'+(currentSortDir>0?'asc':'desc')):'';
+    h+=`<th class="${sortClass}" onclick="${c.sortKey?`tblSort('${c.sortKey}')`:''}">`;
+    h+=c.label+'</th>';
+  });
+  h+='</tr></thead><tbody>';
+  allChannels.forEach((ch,i)=>{
+    const relCls=ch.relPct>70?'rel-hi':ch.relPct>40?'rel-mid':'rel-lo';
+    h+=`<tr onclick="openCh('${ch.id}')">
+      <td style="color:var(--text3)">${i+1}</td>
+      <td class="td-name">
+        ${ch.avatar?`<img src="${esc(ch.avatar)}" style="width:22px;height:22px;border-radius:50%;vertical-align:middle;margin-right:6px" onerror="this.style.display='none'">`:''}
+        ${esc(ch.title)}
+        ${ch.handle?`<div style="font-size:10px;color:var(--text3)">${esc(ch.handle)}</div>`:''}
+      </td>
+      <td style="color:var(--text2)">${ch.country||'–'}</td>
+      <td class="td-num">${fmt(ch.subscribers)}</td>
+      <td class="td-num">${fmt(ch.totalViews)}</td>
+      <td class="td-num" style="color:${ch.avgViews>100000?'var(--green)':'inherit'}">${fmt(ch.avgViews)}</td>
+      <td class="td-num">${fmt(ch.videoCount)}</td>
+      <td class="td-num" style="color:${ch.engagement>10?'var(--green)':ch.engagement>3?'var(--amber)':'inherit'}">${ch.engagement}x</td>
+      <td class="td-rel"><span class="rel-pill ${relCls}">${ch.relPct}%</span></td>
+    </tr>`;
+  });
+  return h+'</tbody></table></div>';
+}
+
+function tblSort(by){
+  if(currentSort===by)currentSortDir*=-1; else{currentSort=by;currentSortDir=1;}
+  sortChannels(allChannels,by);
+  if(currentSortDir<0)allChannels.reverse();
+  renderResults(false);
+}
+
+// ════════════════════════════════════════════════════════════
+// ACTIONS
+// ════════════════════════════════════════════════════════════
+function openCh(id){window.open('https://youtube.com/channel/'+id,'_blank');}
+function copyLink(id){
+  navigator.clipboard.writeText('https://youtube.com/channel/'+id).then(()=>{
+    // brief visual feedback
+  }).catch(()=>alert('https://youtube.com/channel/'+id));
+}
+function setView(v){currentView=v;renderResults(false);}
+function pgGo(p){currentPage=p;renderResults(false);document.getElementById('resultsArea').scrollTop=0;}
+
+function exportCSV(){
+  if(!allChannels.length)return;
+  const headers=['Rank','Channel Name','Handle','Country','Subscribers','Total Views','Videos','Avg Views/Video','Engagement (Views/Sub)','Relevance %','YouTube URL'];
+  const rows=allChannels.map((ch,i)=>[
+    i+1,ch.title,ch.handle,ch.country,
+    parseInt(ch.subscribers),parseInt(ch.totalViews),parseInt(ch.videoCount),
+    ch.avgViews,ch.engagement,ch.relPct,
+    'https://youtube.com/channel/'+ch.id
+  ]);
+  const csv=[headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const q=gv('query').replace(/[^a-z0-9]/gi,'_').slice(0,30);
+  a.href=url;a.download=`channels_${q}_${Date.now()}.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
